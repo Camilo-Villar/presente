@@ -5,6 +5,8 @@
 #include <string.h>
 #include <assert.h>
 #include <math.h>
+#include <raylib.h>
+
 
 state *state_new(){
     // Ask for memory for the state
@@ -24,10 +26,11 @@ state *state_new(){
     return sta;
 }
 
-void state_update(level *lvl, state *sta){
+void state_update(level *lvl, state *sta, int xx, int yy, int zz){
 
     // == Update player speed according to buttons
     // (mov_x,mov_y) is a vector that represents the position of the analog control
+    //para que el jugador se mueva
     float mov_x = 0;
     float mov_y = 0;
     mov_x += sta->button_state[0];
@@ -45,12 +48,18 @@ void state_update(level *lvl, state *sta){
         sta->pla.ent.vx = mov_x/mov_norm * PLAYER_SPEED;
         sta->pla.ent.vy = mov_y/mov_norm * PLAYER_SPEED;
     }
+    DrawText("Metralleta (q)",20,10,20,LIGHTGRAY);
+    DrawText("Bazuca (e)",20,30,20,LIGHTGRAY);
+    DrawText("Bolas de fuego (c)",20,50,20,LIGHTGRAY);
 
     // == Make the player shoot
     // Lower the player's cooldown by 1
     sta->pla.cooldown -= 1;
-    // If the shoot button is pressed and the player cooldown is smaller than 0, shoot a bullet
-    if(sta->button_state[4] && sta->pla.cooldown<=0 && !sta->pla.ent.dead){
+    // metralleta
+    if(xx==1){
+        DrawText("Metralleta",20,10,20,BLACK);
+
+        if(sta->button_state[4] && sta->pla.cooldown<=0 && !sta->pla.ent.dead){
         // Reset the player cooldown to a positive value so that he can't shoot for that amount of frames
         sta->pla.cooldown = PLAYER_COOLDOWN;
         // Ensure that the new bullet won't be created if that would overflow the bullets array
@@ -69,8 +78,54 @@ void state_update(level *lvl, state *sta){
             //
             new_bullet->ent.rad    = BULLET_RAD;
             new_bullet->ent.hp     = BULLET_DMG;
+            
+
         }
-    }
+            }}
+    //bazuca
+    if(yy==1) {
+        DrawText("Bazuca",20,30,20,BLACK);
+
+        if(sta->button_state[4] && sta->pla.cooldown<=0 && !sta->pla.ent.dead){
+        sta->pla.cooldown = PLAYER_COOLDOWN;
+        if(sta->n_balas<MAX_BALAS){
+            bala *new_bala = &sta->balas[sta->n_balas];
+            sta->n_balas += 1;
+            memset(new_bala,0,sizeof(bala));
+            new_bala->ent.x      = sta->pla.ent.x;
+            new_bala->ent.y      = sta->pla.ent.y;
+            new_bala->ent.vx     =  BALA_SPEED*cos(sta->aim_angle);
+            new_bala->ent.vy     = -BALA_SPEED*sin(sta->aim_angle);
+            //
+            new_bala->ent.rad    = BALA_RAD;
+            new_bala->ent.hp     = BALA_DMG;
+
+            
+        }
+    }}
+    //bolas de fuego
+    if(zz==1) {
+        DrawText("Bolas de fuego",20,50,20,BLACK);
+    if( sta->button_state[4] && sta->pla.cooldown<=0 && !sta->pla.ent.dead){
+        sta->pla.cooldown = PLAYER_COOLDOWN;
+        if(sta->n_lanzas<MAX_LANZAS){
+            lanza *new_lanza = &sta->lanzas[sta->n_lanzas];
+            sta->n_lanzas += 1;
+            memset(new_lanza,0,sizeof(lanza));
+            new_lanza->ent.x      = sta->pla.ent.x;
+            new_lanza->ent.y      = sta->pla.ent.y;
+            new_lanza->ent.vx     =  LANZA_SPEED*cos(sta->aim_angle);
+            new_lanza->ent.vy     = -LANZA_SPEED*sin(sta->aim_angle);
+
+
+            //
+            
+            new_lanza->ent.rad    = LANZA_RAD;
+            new_lanza->ent.hp     = LANZA_DMG;
+
+            
+        }
+    }}
 
     // == Check bullet-enemy collisions
     for(int i=0;i<sta->n_bullets;i++){
@@ -80,6 +135,22 @@ void state_update(level *lvl, state *sta){
                 // Reduce enemy's health by bullet's health and kill bullet
                 sta->enemies[k].ent.hp -= sta->bullets[i].ent.hp;
                 sta->bullets[i].ent.dead = 1;
+            }
+        }
+    }
+    for(int i=0;i<sta->n_balas;i++){
+        for(int k=0;k<sta->n_enemies;k++){
+            if(entity_collision(&sta->balas[i].ent,&sta->enemies[k].ent)){
+                sta->enemies[k].ent.hp -= sta->balas[i].ent.hp;
+                sta->balas[i].ent.dead = 1;
+            }
+        }
+    }
+    for(int i=0;i<sta->n_lanzas;i++){
+        for(int k=0;k<sta->n_enemies;k++){
+            if(entity_collision(&sta->lanzas[i].ent,&sta->enemies[k].ent)){
+                sta->enemies[k].ent.hp -= sta->lanzas[i].ent.hp;
+                sta->lanzas[i].ent.dead = 1;
             }
         }
     }
@@ -100,6 +171,16 @@ void state_update(level *lvl, state *sta){
         // Kill bullet if it is colliding with a wall
         if(col) sta->bullets[i].ent.dead = 1;
     }
+    //UPDATE BALAS
+    for(int i=0;i<sta->n_balas;i++){
+        int col = entity_physics(lvl,&sta->balas[i].ent);
+        if(col) sta->balas[i].ent.dead = 1;
+    }
+    //UPDATE LANZAS
+    for(int i=0;i<sta->n_lanzas;i++){
+        int col = entity_physics(lvl,&sta->lanzas[i].ent);
+        if(col) sta->lanzas[i].ent.dead = 1;
+    }
 
 
     // == Delete dead entities
@@ -117,6 +198,30 @@ void state_update(level *lvl, state *sta){
     }
 
     {
+        int new_n_balas = 0;
+        for(int i=0;i<sta->n_balas;i++){
+            if(!sta->balas[i].ent.dead){
+                sta->balas[new_n_balas] = sta->balas[i];
+                new_n_balas += 1;
+            }
+        }
+        // Update the number of balas
+        sta->n_balas = new_n_balas;
+    }
+
+    {
+        int new_n_lanzas = 0;
+        for(int i=0;i<sta->n_lanzas;i++){
+            if(!sta->lanzas[i].ent.dead){
+                sta->lanzas[new_n_lanzas] = sta->lanzas[i];
+                new_n_lanzas += 1;
+            }
+        }
+        // Update the number of bolas de fuego
+        sta->n_lanzas = new_n_lanzas;
+    }
+
+    {
         // We filter the enemy array, moving each surviving enemy to the position it would have on a filtered array
         int new_n_enemies = 0;
         for(int i=0;i<sta->n_enemies;i++){
@@ -130,7 +235,7 @@ void state_update(level *lvl, state *sta){
     }
 
 }
-
+//no se hace nada acá
 void state_populate_random(level *lvl, state *sta, int n_enemies){
     assert(n_enemies<=MAX_ENEMIES);
     while(sta->n_enemies<n_enemies){

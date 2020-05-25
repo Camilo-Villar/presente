@@ -60,15 +60,39 @@ void draw_state(const level *lvl, const state *sta){
         DrawCircleV(vec,ent.rad,BLUE);
     }
 
-    // Draw bullets
+    // Draw bullets(metralleta)
     for(int i=0;i<sta->n_bullets;i++){
         // Get a copy of the bullet entity
         entity ent = sta->bullets[i].ent;
         // Initialize a Vector2 that represents the center of the entity position
         Vector2 vec = {ent.x,ent.y};
         // Draw a circle with the radius of the entity
-        DrawCircleV(vec,ent.rad,PINK);
+        DrawCircleV(vec,ent.rad,GRAY);
+
+        
+        
     }
+
+    //Draw balas(bazuca)
+    for(int i=0;i<sta->n_balas;i++){
+        entity ent = sta->balas[i].ent;
+        Vector2 vec = {ent.x,ent.y}; 
+        DrawCircleV(vec,ent.rad,BLACK);
+
+        
+        
+    }
+
+    //Draw bolas de fuego
+    for(int i=0;i<sta->n_lanzas;i++){
+        entity ent = sta->lanzas[i].ent;
+        Vector2 vec = {ent.x,ent.y};
+        DrawCircleV(vec,ent.rad,ORANGE);
+
+        
+        
+    }
+
 
     // Stop drawing relative to the camera
     EndMode2D();
